@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>刷題系統</title>
+<style>
+body { font-family: Arial; max-width: 800px; margin: auto; }
+.question { margin: 20px 0; }
+.choice { margin: 5px 0; }
+button { margin: 10px 5px; padding: 8px 16px; }
+.wrong { color: red; }
+.correct { color: green; }
+</style>
+</head>
+<body>
+
+<h1>刷題系統</h1>
+<div id="quiz"></div>
+<button onclick="submitQuiz()">送出</button>
+<button onclick="nextRound()">下一次測驗</button>
+<div id="result"></div>
+
+<script>
+const QUESTIONS = [
+  {"id":"T1-Q1","question":"The volumetric efficiency versus engine speed for various intake manifold configurations of an automotive four-stroke engine __ using the computer simulation based on thermodynamic modeling.","choices":["which can be evaluated","to be evaluated","can be evaluating","can be evaluated"],"answer":3},
+  {"id":"T1-Q2","question":"Pumping the fresh charge into the cylinders __ may be minimized by varying the amount of fuel injected per cycle with the air flow through the throttle.","choices":["That the negative work","If the negative work","How the negative work","The negative work"],"answer":3},
+  {"id":"T1-Q3","question":"The technology of mobile computing is designed __ meet human demands ranging from business and government to social contacts.","choices":["for","can","which","to"],"answer":3},
+  {"id":"T1-Q4","question":"The greatest problem confronting people today __ to transform other forms of energy into electrical energy.","choices":["are","is","which are","which is"],"answer":1},
+  {"id":"T1-Q5","question":"In these circumstances __ due to acceleration acts rearwards through the vehicle center of gravity with its magnitude equal to the tractive forces existing between the tires of the driven wheels and the road.","choices":["of an inertia force","which an inertia force","where an inertia force","an inertia force"],"answer":3},
+  {"id":"T1-Q6","question":"The bluetooth technology initially studied for mobile phone application by Ericsson in 1994 has been developed to operate in a wireless and short-distance environment, __ the transmissions of voice and data.","choices":["for mobile phone application","which mobile phone application","if mobile phone application","what mobile phone application"],"answer":0},
+  {"id":"T1-Q7","question":"Using General Packet Radio Service (GPRS) based on existing GSM networks, customers __ on to Internet, and only have to pay for these services on sending or receiving information.","choices":["can be permanently logged","can permanently logged","which can be permanently logged","to be permanently logged"],"answer":0},
+  {"id":"T1-Q8","question":"Today the computer is widely used in solving mathematical problems __ to do with weather forecasting and putting satellites into orbit.","choices":["which having","having","are having","is having"],"answer":1},
+  {"id":"T1-Q9","question":"An amplifying medium for lasers located in a cavity between two mirrors __ the intensity of light beam passing through it.","choices":["which can increase","to increase","can increase","increasing"],"answer":2},
+  {"id":"T1-Q10","question":"The butterfly valve mounted at the upstream end of the intake system __ to control the amount of air flow induced into an SI engine.","choices":["can used","to used","which used","is used"],"answer":3},
+  {"id":"T1-Q11","question":"Forming a rectangular figure eight with both coils concentrically mounted on the middle leg, __ is called a shell-type transformer.","choices":["in the core","the core","when the core","which the core"],"answer":1},
+  {"id":"T1-Q12","question":"The CIS-E Motronic engine management system can monitor the intake air temperature sensor to detect EGR system faults __ in permanent memory of the built-in diagnostic circuitry.","choices":["which storing","are stored","to stored","stored"],"answer":3},
+  {"id":"T1-Q13","question":"Any sideways push exerted by the kerb __ steered to this modest degree can then be absorbed by the flexibility of the tire wall and suspension bushings.","choices":["is against the rear wheels","against the rear wheels","which against the rear wheels","the rear wheels"],"answer":1},
+  {"id":"T1-Q14","question":"The effectiveness of translation from the driving torque applied to the wheels into a tractive force to propel the vehicle __ on the vertical load and the coefficient of friction existing between the tires and road.","choices":["to depend","depending","which depends","depends"],"answer":3},
+  {"id":"T1-Q15","question":"The vaporization of fuel occurring in the cylinder __ of the compression stroke cools the air for increasing the amount of charge induced from the intake manifold.","choices":["is at a late stage","which at a late stage","a late stage","at a late stage"],"answer":3},
+  {"id":"T1-Q16","question":"The effect of this inertia force acting at the height of the center of gravity is __ a pitching couple on the car, thus increasing the load on the rear wheels and reducing it on the front ones.","choices":["to impose","for impose","that impose","if impose"],"answer":0},
+  {"id":"T1-Q17","question":"Heat transfer from the gas can be coupled to the conduction analysis __ for capacitance only in a layer of thickness in series with a resistance measured for a steady state.","choices":["accounting","which accounting","to counted","accounts"],"answer":0},
+  {"id":"T1-Q18","question":"The two-stroke engine operating at 2000 rpm and made of cast iron __ a small amplitude of the oscillation formed inside the surface of the cylinder block.","choices":["that giving","gives","to given","can gives"],"answer":1},
+  {"id":"T1-Q19","question":"In the simplest case of a four-wheel-drive vehicle having an equal distribution of weight between the front and rear wheels, __ of driving torque between its axles would seem to be acceptable.","choices":["if an equal division","for an equal division","an equal division","that an equal division"],"answer":2},
+  {"id":"T1-Q20","question":"A star configuration __ of a series of computers connected through a central point with a device served as a knob.","choices":["comprises","that comprises","comprise","to comprised"],"answer":0},
+  {"id":"T1-Q21","question":"Computer and information systems accepted by the general public __ for specialized activities are on the verge of astonishing advance, generally called the information revolution.","choices":["is as an useful tool","as an useful tool","are as an useful tool","an useful tool"],"answer":1},
+  {"id":"T1-Q22","question":"Charged particles trapped inside our planet's magnetic field make up the Van Allen radiation belts __ almost 20,000 kilometers above Earth.","choices":["which locating","to located","located","are located"],"answer":2},
+  {"id":"T1-Q23","question":"The air introduced by the solenoid __ in addition to the air admitted by the fixed air bleeds.","choices":["which being","to is","are","is"],"answer":3},
+  {"id":"T1-Q24","question":"The amount of vacuum applied to the servo is modulated using the cruise control power valve __ by the engine control module.","choices":["governed","is governed","that governing","to governed"],"answer":0},
+  {"id":"T1-Q25","question":"In some cases, information __ within the engine control module is sent by way of a data link to the body computer module as input information.","choices":["which containing","to contained","is contained","contained"],"answer":3},
+
+  {"id":"T1-Q26","question":"The hole in the disk __ transmission of light through the light pipes from the light-emitting diode source to the phototransistor used as a light sensor.","choices":["which allowing","to allows","can allows","allows"],"answer":3},
+  {"id":"T1-Q27","question":"The voltage developed across the sensors results from the electromagnetic forces acting on electrons in metal __.","choices":["is semiconductors","are semiconductors","is and semiconductors","and semiconductors"],"answer":3},
+  {"id":"T1-Q28","question":"Above the 8th floor, __ and inclined moment-resisting lattices holding a wall system of glass panels all tie back into the super-columns in order to counter both wind and seismic activity without being damaged.","choices":["when steel trusses","that steel trusses","on steel trusses","steel trusses"],"answer":3},
+  {"id":"T1-Q29","question":"An inertia force acting rearwards __ of gravity due to acceleration is equal in magnitude to the tractive forces existing between the tires of the wheels and the road.","choices":["is through the vehicle center","where through the vehicle center","which through the vehicle center","through the vehicle center"],"answer":3},
+  {"id":"T1-Q30","question":"To find the subsequent height of the feet above the baseline drawn through their initial position, __ in column 4 are added together algebraically one after the other, giving the values in column 5.","choices":["with the values","which the values","the values","where the values"],"answer":2},
+  {"id":"T1-Q31","question":"The process usually __ taking thousands of images from videos featuring the faces of the target and the actor from different angles.","choices":["is involves","involves","to involved","which involving"],"answer":1},
+  {"id":"T1-Q32","question":"The revenue __ by e-sports as a whole has also grown rapidly in recent times, now totaling $650 million per year and expected to climb to $4 billion by 2022.","choices":["which generating","to generated","generated","is generated"],"answer":2},
+  {"id":"T1-Q33","question":"The oxygen sensor does not function __ reaches a rather high operating temperature, so, on some later models, a heater unit may be included to bring the sensor into operation quickly.","choices":["which it","of it","until it","it"],"answer":2},
+  {"id":"T1-Q34","question":"The concave eyepiece lens, or diverging lens, curves inward __ the image so that it spreads across the human retina to create a larger image than possible with just the human eye.","choices":["and magnifies","to magnifies","which magnifies","can magnifies"],"answer":0},
+  {"id":"T1-Q35","question":"The recognition that __ of happiness and unhappiness can coexist much like love and hate in a close relationship may offer valuable clues on how to lead a happier life.","choices":["feeling","due to feeling","can feeling","with feeling"],"answer":0},
+  {"id":"T1-Q36","question":"What the economic theories can contribute to the management science __ building analytical models which help in recognizing the structure of managerial problem, and eliminating the minor details which might obstruct decision making.","choices":["to","for","may is","is"],"answer":3},
+  {"id":"T1-Q37","question":"Food biotechnology will continue to make a significant impact on the global community, as long as research and development makes every effort to keep the public trust, provide economic fairness, __ the health of the ecosystem.","choices":["is and protect","to and protect","and protect","and is protect"],"answer":2},
+  {"id":"T1-Q38","question":"Water supply can be naturally affected by climate, drought, and floods, but problems with misallocation of water resources, pollution of water sources, and difficulty __ and developing available water contribute to growing water crisis in the 21st century.","choices":["in accessing","is in accessing","are in accessing","is accessing"],"answer":0},
+  {"id":"T1-Q39","question":"A comparison of the skeletal structure of the two species reveals similarities such as hollow bones, while examination of their cellular anatomy indicates __ are directly related.","choices":["which they","with they","that they","that with they"],"answer":2},
+  {"id":"T1-Q40","question":"Even though plenty of surveys indicate that the firstborns are out-performed among children, this declaration really says less __ the eldest than about not having many sibling, or living in an extended family.","choices":["is about being","about being","are about being","has about being"],"answer":1},
+  {"id":"T1-Q41","question":"Whether a later model has a heated sensor or not can be identified by noting __ has three wires in the connector.","choices":["which it","with it","than it","that it"],"answer":3},
+  {"id":"T1-Q42","question":"Theoretically the fact that the tractive forces are shared between four, rather than two, driven wheels should mean that a four-wheel-drive car can be accelerated harder out of a corner before __ loses its adhesion.","choices":["when any tire","with any tire","any tire","that any tire"],"answer":2},
+  {"id":"T1-Q43","question":"Since installing optical fiber for each home is very expensive, a technology called ADSL which utilizes traditional network __ services similar to cable-modem system is developed to give minimal cost of installation and boost the telephone network to Internet application.","choices":["to offered","to offer","for offer","offers"],"answer":1},
+  {"id":"T1-Q44","question":"For the EGR system to operate properly, the vacuum hoses __ at the intake system must be securely connected so that the air induced from outside can be free of leak.","choices":["to located","is located","located","which locating"],"answer":2},
+  {"id":"T1-Q45","question":"One typical example of major takeover conducted by this company __ people an understanding of how management mistakes combined with angry retaliation from the buyer can harm each other.","choices":["to give","which giving","can gives","gives"],"answer":3},
+  {"id":"T1-Q46","question":"An oscillator usually requires a vacuum-tube or transistor amplifier providing an amplified in-phase output which is then fed back to the input __ oscillation.","choices":["is to sustain","to sustain","is sustaining","which sustaining"],"answer":1},
+  {"id":"T1-Q47","question":"Drain-water heat recovery systems can capture hot water that __ down the drain, carrying with it most of the energy used to heat water in a home.","choices":["to go","can goes","going","goes"],"answer":3},
+  {"id":"T1-Q48","question":"This assembly of closely spaced discs is sealed within the outer shell, which is almost completely filled with silicone fluid __ a viscosity about that of honey and remaining stable under wide variation in operating temperature.","choices":["is having","has","which having","having"],"answer":3},
+  {"id":"T1-Q49","question":"Fiber optics coupled with the recent invention of Integrated Services Digital Network systems, which allow various machines __ and communicate with each other regardless of data type or computer language, will create an information superhighway.","choices":["is to understand","are to understand","can understand","to understand"],"answer":3},
+  {"id":"T1-Q50","question":"Software encompasses not only application programs, __ a business or scientific problem in a form a computer can understand, but also the great variety of detailed and voluminous instructions stored in computer memory to organize and automate the work of the machine.","choices":["is to organize","to organized","which organizing","to organize"],"answer":3},
+
+  {"id":"T2-Q1","question":"The volumetric efficiency versus engine speed for various intake manifold configurations of an automotive four-stroke engine __ using the computer simulation based on thermodynamic modeling.","choices":["which can be evaluated","to be evaluated","can be evaluating","can be evaluated"],"answer":3},
+  {"id":"T2-Q2","question":"The negative work __ the fresh charge into the cylinders may be minimized by varying the amount of fuel injected per cycle with the air flow through the throttle.","choices":["which pumping","is pumping","pumping","to pumping"],"answer":2},
+  {"id":"T2-Q3","question":"The technology of mobile computing is designed __ meet human demands ranging from business and government to social contacts.","choices":["for","can","which","to"],"answer":3},
+  {"id":"T2-Q4","question":"The greatest problem confronting people today is __ other forms of energy into electrical energy.","choices":["to be transform","in transform","to transform","that transform"],"answer":2},
+  {"id":"T2-Q5","question":"In these circumstances __ due to acceleration acts rearwards through the vehicle center of gravity with its magnitude equal to the tractive forces existing between the tires of the driven wheels and the road.","choices":["of an inertia force","which an inertia force","where an inertia force","an inertia force"],"answer":3},
+  {"id":"T2-Q6","question":"The bluetooth technology initially studied for mobile phone application by Ericsson in 1994 has been developed to operate in a wireless and short-distance environment, __ the transmissions of voice and data.","choices":["to providing","providing","is providing","which providing"],"answer":1},
+  {"id":"T2-Q7","question":"Using General Packet Radio Service (GPRS) based on existing GSM networks, customers __ on to Internet, and only have to pay for these services on sending or receiving information.","choices":["can be permanently logged","can permanently logged","which can be permanently logged","to be permanently logged"],"answer":0},
+  {"id":"T2-Q8","question":"Today the computer is widely used __ mathematical problems having to do with weather forecasting and putting satellites into orbit.","choices":["in solving","is solving","that solving","can solving"],"answer":0},
+  {"id":"T2-Q9","question":"An amplifying medium for lasers located in a cavity between two mirrors __ the intensity of light beam passing through it.","choices":["which can increase","to increase","can increase","increasing"],"answer":2},
+  {"id":"T2-Q10","question":"The butterfly valve mounted at the upstream end of the intake system is used to control the amount of air flow __ into an SI engine.","choices":["is induced","is inducing","which inducing","induced"],"answer":3},
+
+  {"id":"T2-Q11","question":"Forming a rectangular figure eight with both coils concentrically mounted on the middle leg, __ is called a shell-type transformer.","choices":["in the core","the core","when the core","which the core"],"answer":1},
+  {"id":"T2-Q12","question":"The CIS-E Motronic engine management system can monitor the intake air temperature sensor __ EGR system faults stored in permanent memory of the built-in diagnostic circuitry.","choices":["which detect","is detect","to detect","can detect"],"answer":2},
+  {"id":"T2-Q13","question":"Any sideways push exerted by the kerb __ steered to this modest degree can then be absorbed by the flexibility of the tire wall and suspension bushings.","choices":["is against the rear wheels","against the rear wheels","which against the rear wheels","the rear wheels"],"answer":1},
+  {"id":"T2-Q14","question":"The effectiveness of translation __ applied to the wheels into a tractive force to propel the vehicle depends on the vertical load and the coefficient of friction existing between the tires and road.","choices":["from the driving torque","is from the driving torque","the driving torque","are from the driving torque"],"answer":0},
+  {"id":"T2-Q15","question":"The vaporization of fuel occurring in the cylinder __ of the compression stroke cools the air for increasing the amount of charge induced from the intake manifold.","choices":["is at a late stage","which at a late stage","a late stage","at a late stage"],"answer":3},
+  {"id":"T2-Q16","question":"The effect of this inertia force acting at the height of the center of gravity __ to impose a pitching couple on the car, thus increasing the load on the rear wheels and reducing it on the front ones.","choices":["which is","are","is","can is"],"answer":2},
+  {"id":"T2-Q17","question":"Heat transfer from the gas can be coupled to the conduction analysis __ for capacitance only in a layer of thickness in series with a resistance measured for a steady state.","choices":["accounting","which accounting","to counted","accounts"],"answer":0},
+  {"id":"T2-Q18","question":"The two-stroke engine __ at 2000 rpm and made of cast iron gives a small amplitude of the oscillation formed inside the surface of the cylinder block.","choices":["which operating","to operated","operating","is operating"],"answer":2},
+  {"id":"T2-Q19","question":"In the simplest case of a four-wheel-drive vehicle having an equal distribution of weight between the front and rear wheels, __ of driving torque between its axles would seem to be acceptable.","choices":["if an equal division","for an equal division","an equal division","that an equal division"],"answer":2},
+  {"id":"T2-Q20","question":"__ comprises of a series of computers connected through a central point with a device served as a knob.","choices":["That a star configuration","A star configuration","In a star configuration","Because a star configuration"],"answer":1},
+
+  {"id":"T2-Q21","question":"Computer and information systems accepted by the general public __ for specialized activities are on the verge of astonishing advance, generally called the information revolution.","choices":["is as an useful tool","as an useful tool","are as an useful tool","an useful tool"],"answer":1},
+  {"id":"T2-Q22","question":"Charged particles __ inside our planet's magnetic field make up the Van Allen radiation belts located almost 20,000 kilometers above Earth.","choices":["is trapped","are trapped","trapped","to trapped"],"answer":2},
+  {"id":"T2-Q23","question":"The air introduced by the solenoid __ in addition to the air admitted by the fixed air bleeds.","choices":["which being","to is","are","is"],"answer":3},
+  {"id":"T2-Q24","question":"The amount of vacuum __ to the servo is modulated using the cruise control power valve governed by the engine control module.","choices":["applied","which applying","is applied","to applied"],"answer":0},
+  {"id":"T2-Q25","question":"In some cases, information __ within the engine control module is sent by way of a data link to the body computer module as input information.","choices":["which containing","to contained","is contained","contained"],"answer":3},
+
+  {"id":"T2-Q26","question":"The hole in the disk allows transmission of light __ from the light-emitting diode source to the phototransistor used as a light sensor.","choices":["is through the light pipes","through the light pipes","are through the light pipes","which through the light pipes"],"answer":1},
+  {"id":"T2-Q27","question":"The voltage developed across the sensors results from the electromagnetic forces acting on electrons in metal __.","choices":["is semiconductors","are semiconductors","is and semiconductors","and semiconductors"],"answer":3},
+  {"id":"T2-Q28","question":"Above the 8th floor, steel trusses and inclined moment-resisting lattices holding a wall system of glass panels all tie back into the super-columns in order to counter both wind and seismic activity __.","choices":["is without being damaged","that without being damaged","without being damaged","are without being damaged"],"answer":2},
+  {"id":"T2-Q29","question":"An inertia force acting rearwards __ of gravity due to acceleration is equal in magnitude to the tractive forces existing between the tires of the wheels and the road.","choices":["is through the vehicle center","where through the vehicle center","which through the vehicle center","through the vehicle center"],"answer":3},
+  {"id":"T2-Q30","question":"To find the subsequent height of the feet above the baseline drawn through their initial position, the values in column 4 __ together algebraically one after the other, giving the values in column 5.","choices":["adding","is adding","to add","are added"],"answer":3},
+
+  {"id":"T2-Q31","question":"The process usually __ taking thousands of images from videos featuring the faces of the target and the actor from different angles.","choices":["is involves","involves","to involved","which involving"],"answer":1},
+  {"id":"T2-Q32","question":"The revenue generated by e-sports as a whole has also grown rapidly in recent times, now totaling $650 million __ and expected to climb to $4 billion by 2022.","choices":["per year","is per year","that per year","for per year"],"answer":0},
+  {"id":"T2-Q33","question":"The oxygen sensor does not function __ reaches a rather high operating temperature, so, on some later models, a heater unit may be included to bring the sensor into operation quickly.","choices":["which it","of it","until it","it"],"answer":2},
+  {"id":"T2-Q34","question":"The concave eyepiece lens, or diverging lens, curves inward and magnifies the image so that it __ across the human retina to create a larger image than possible with just the human eye.","choices":["to spread","to spreading","spreads","can spreads"],"answer":2},
+  {"id":"T2-Q35","question":"The recognition that __ of happiness and unhappiness can coexist much like love and hate in a close relationship may offer valuable clues on how to lead a happier life.","choices":["feeling","due to feeling","can feeling","with feeling"],"answer":0},
+
+  {"id":"T2-Q36","question":"What the economic theories can contribute to the management science is building analytical models which __ in recognizing the structure of managerial problem, and eliminating the minor details which might obstruct decision making.","choices":["helping","help","to help","for help"],"answer":1},
+  {"id":"T2-Q37","question":"Food biotechnology will continue to make a significant impact on the global community, as long as research and development makes every effort to keep the public trust, provide economic fairness, __ the health of the ecosystem.","choices":["is and protect","to and protect","and protect","and is protect"],"answer":2},
+  {"id":"T2-Q38","question":"Water supply can be naturally affected by climate, drought, and floods, but problems with misallocation of water resources, pollution of water sources, and difficulty in accessing and developing available water __ to growing water crisis in the 21st century.","choices":["contribute","contributes","is contribute","are contribute"],"answer":0},
+  {"id":"T2-Q39","question":"A comparison of the skeletal structure of the two species reveals similarities such as hollow bones, while examination of their cellular anatomy indicates __ are directly related.","choices":["which they","with they","that they","that with they"],"answer":2},
+  {"id":"T2-Q40","question":"Even though plenty of surveys indicate __ are out-performed among children, this declaration really says less about being the eldest than about not having many sibling, or living in an extended family.","choices":["which for the firstborns","which the firstborns","that the firstborns","with the firstborns"],"answer":2},
+
+  {"id":"T2-Q41","question":"Whether a later model has a heated sensor or not can be identified by noting __ has three wires in the connector.","choices":["which it","with it","than it","that it"],"answer":3},
+  {"id":"T2-Q42","question":"Theoretically the fact that __ are shared between four, rather than two, driven wheels should mean that a four-wheel-drive car can be accelerated harder out of a corner before any tire loses its adhesion.","choices":["on the tractive force","with the tractive forces","the tractive forces","is the tractive forces"],"answer":2},
+  {"id":"T2-Q43","question":"Since installing optical fiber for each home is very expensive, a technology called ADSL which utilizes traditional network __ services similar to cable-modem system is developed to give minimal cost of installation and boost the telephone network to Internet application.","choices":["to offered","to offer","for offer","offers"],"answer":1},
+  {"id":"T2-Q44","question":"__ to operate properly, the vacuum hoses located at the intake system must be securely connected so that the air induced from outside can be free of leak.","choices":["The EGR system","For the EGR system","That the EGR system","If the EGR system"],"answer":1},
+  {"id":"T2-Q45","question":"One typical example of major takeover conducted by this company __ people an understanding of how management mistakes combined with angry retaliation from the buyer can harm each other.","choices":["to give","which giving","can gives","gives"],"answer":3},
+
+  {"id":"T2-Q46","question":"An oscillator usually requires a vacuum-tube or transistor amplifier providing an amplified in-phase output which __ back to the input to sustain oscillation.","choices":["can then fed","to then fed","then fed","is then fed"],"answer":3},
+  {"id":"T2-Q47","question":"Drain-water heat recovery systems can capture hot water that __ down the drain, carrying with it most of the energy used to heat water in a home.","choices":["to go","can goes","going","goes"],"answer":3},
+  {"id":"T2-Q48","question":"This assembly of closely spaced discs is sealed within the outer shell, which is almost completely filled with silicone fluid having a viscosity __ of honey and remaining stable under wide variation in operating temperature.","choices":["about that","is about that","which about that","if about that"],"answer":0},
+  {"id":"T2-Q49","question":"Fiber optics coupled with the recent invention of Integrated Services Digital Network systems, which allow various machines __ and communicate with each other regardless of data type or computer language, will create an information superhighway.","choices":["is to understand","are to understand","can understand","to understand"],"answer":3},
+  {"id":"T2-Q50","question":"Software encompasses not only application programs, __ a business or scientific problem in a form a computer can understand, but also the great variety of detailed and voluminous instructions stored in computer memory to organize and automate the work of the machine.","choices":["which presenting","which to present","which present","present"],"answer":2}
+]
+; // 下面貼題庫
+
+function loadStats() {
+  return JSON.parse(localStorage.getItem("stats") || "{}");
+}
+function saveStats(stats) {
+  localStorage.setItem("stats", JSON.stringify(stats));
+}
+
+let current = [];
+
+function weightedSample(arr, n) {
+  const stats = loadStats();
+  const pool = [];
+  arr.forEach(q => {
+    const w = 1 + (stats[q.id]?.wrong || 0);
+    for (let i = 0; i < w; i++) pool.push(q);
+  });
+  const res = [];
+  while (res.length < n && pool.length) {
+    const i = Math.floor(Math.random() * pool.length);
+    res.push(pool.splice(i,1)[0]);
+  }
+  return res;
+}
+
+function render() {
+  current = weightedSample(QUESTIONS, 25);
+  const div = document.getElementById("quiz");
+  div.innerHTML = "";
+  current.forEach((q,i) => {
+    div.innerHTML += `
+      <div class="question">
+        <b>${i+1}. ${q.question}</b><br>
+        ${q.choices.map((c,idx)=>`
+          <div class="choice">
+            <label><input type="radio" name="q${i}" value="${idx}"> ${c}</label>
+          </div>`).join("")}
+      </div>`;
+  });
+}
+
+function submitQuiz() {
+  const stats = loadStats();
+  let html = "<h2>結果</h2>";
+  current.forEach((q,i)=>{
+    const sel = document.querySelector(`input[name=q${i}]:checked`);
+    const ans = sel ? Number(sel.value) : -1;
+    if (!stats[q.id]) stats[q.id] = { wrong:0 };
+    if (ans !== q.answer) {
+      stats[q.id].wrong++;
+      html += `<div class="wrong">❌ ${q.question} 正解：${q.choices[q.answer]}</div>`;
+    } else {
+      html += `<div class="correct">✔ ${q.question}</div>`;
+    }
+  });
+  saveStats(stats);
+  document.getElementById("result").innerHTML = html;
+}
+
+function nextRound() {
+  document.getElementById("result").innerHTML = "";
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
