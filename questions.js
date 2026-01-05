@@ -1,4 +1,4 @@
-[
+window.QUESTIONS = [
   {"id":"T1-Q1","question":"The volumetric efficiency versus engine speed for various intake manifold configurations of an automotive four-stroke engine __ using the computer simulation based on thermodynamic modeling.","choices":["which can be evaluated","to be evaluated","can be evaluating","can be evaluated"],"answer":3},
   {"id":"T1-Q2","question":"Pumping the fresh charge into the cylinders __ may be minimized by varying the amount of fuel injected per cycle with the air flow through the throttle.","choices":["That the negative work","If the negative work","How the negative work","The negative work"],"answer":3},
   {"id":"T1-Q3","question":"The technology of mobile computing is designed __ meet human demands ranging from business and government to social contacts.","choices":["for","can","which","to"],"answer":3},
@@ -108,4 +108,4 @@
   {"id":"T2-Q48","question":"This assembly of closely spaced discs is sealed within the outer shell, which is almost completely filled with silicone fluid having a viscosity __ of honey and remaining stable under wide variation in operating temperature.","choices":["about that","is about that","which about that","if about that"],"answer":0},
   {"id":"T2-Q49","question":"Fiber optics coupled with the recent invention of Integrated Services Digital Network systems, which allow various machines __ and communicate with each other regardless of data type or computer language, will create an information superhighway.","choices":["is to understand","are to understand","can understand","to understand"],"answer":3},
   {"id":"T2-Q50","question":"Software encompasses not only application programs, __ a business or scientific problem in a form a computer can understand, but also the great variety of detailed and voluminous instructions stored in computer memory to organize and automate the work of the machine.","choices":["which presenting","which to present","which present","present"],"answer":2}
-]
+];
