@@ -6,48 +6,59 @@
 <title>刷題系統</title>
 
 <style>
-  body { font-family: Arial; max-width: 900px; margin: 18px auto; padding: 0 12px; }
-  h1 { margin: 8px 0 14px; }
-  .topbar { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom: 14px; }
-  .question { margin: 18px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; }
-  .qtitle { font-weight: 700; margin-bottom: 10px; line-height: 1.4; }
-  .choice { margin: 8px 0; }
+body { font-family: Arial; max-width: 900px; margin: 18px auto; padding: 0 12px; }
+h1 { margin: 8px 0 14px; }
+.topbar { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom: 14px; }
+.question { margin: 18px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; }
+.qtitle { font-weight: 700; margin-bottom: 10px; line-height: 1.4; }
+.choice { margin: 8px 0; }
 
-  button { margin: 6px 6px 6px 0; padding: 10px 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
-  button:disabled { opacity: .55; cursor: not-allowed; }
+button { margin: 6px 6px 6px 0; padding: 10px 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+button:disabled { opacity: .55; cursor: not-allowed; }
 
-  select { padding: 8px 10px; border-radius: 10px; border: 1px solid #ddd; }
+select { padding: 8px 10px; border-radius: 10px; border: 1px solid #ddd; }
 
-  label.option {
-    display: block;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    margin: 6px 0;
-    line-height: 1.35;
-    user-select: none;
-  }
+label.option {
+  display: block;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  margin: 6px 0;
+  line-height: 1.35;
+  user-select: none;
+}
 
-  label.option.is-selected-correct { background: #dcfce7; border-color: #16a34a; }
-  label.option.is-selected-wrong   { background: #fee2e2; border-color: #dc2626; }
-  label.option.is-correct          { background: #dcfce7; border-color: #16a34a; }
+label.option.is-correct {
+  background: #dcfce7;
+  border-color: #16a34a;
+}
 
-  .meta { color:#555; font-size: 14px; }
+label.option.is-wrong {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
 
-  /* 最後控制區 */
-  .actions {
-    margin: 10px 0 30px;
-    padding: 14px;
-    border: 1px solid #eee;
-    border-radius: 12px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
+label.option.is-unanswered {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #6b7280;
+}
+
+.meta { color:#555; font-size: 14px; }
+
+.actions {
+  margin: 10px 0 30px;
+  padding: 14px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
 </style>
 
-<!-- ✅ 用絕對路徑 + 版本參數，避免快取 -->
+<!-- 題庫 -->
 <script src="https://timchen940202-max.github.io/quiz/questions.js?v=1"></script>
 </head>
 
@@ -64,161 +75,148 @@
       <option value="25">25 題</option>
     </select>
   </div>
-
-  <!-- ✅ 這裡顯示：對的題數/有作答的題數（送出後更新） -->
-  <div class="meta" id="meta">請作答後按送出</div>
+  <div class="meta" id="meta">0 / 0</div>
 </div>
 
 <div id="quiz"></div>
 
-<!-- ✅ 按鈕移到最後一題後面 -->
 <div class="actions">
   <button id="submitBtn">送出</button>
   <button id="nextBtn">下一次測驗</button>
 </div>
 
 <script>
-  const QUESTIONS = window.QUESTIONS || [];
+const QUESTIONS = window.QUESTIONS || [];
 
-  function loadStats() {
-    return JSON.parse(localStorage.getItem("stats") || "{}");
-  }
-  function saveStats(stats) {
-    localStorage.setItem("stats", JSON.stringify(stats));
-  }
+function loadStats() {
+  return JSON.parse(localStorage.getItem("stats") || "{}");
+}
+function saveStats(stats) {
+  localStorage.setItem("stats", JSON.stringify(stats));
+}
 
-  let current = [];
-  let locked = false;
+let current = [];
+let locked = false;
 
-  function getNumQuestions() {
-    return parseInt(document.getElementById("numQuestions").value, 10);
-  }
+function getNumQuestions() {
+  return parseInt(document.getElementById("numQuestions").value, 10);
+}
 
-  // ✅ 不重複 + 加權
-  function weightedSampleUnique(arr, n) {
-    const stats = loadStats();
-    const pool = arr.map(q => ({ q, w: 1 + (stats[q.id]?.wrong || 0) }));
-
-    const res = [];
-    while (res.length < n && pool.length > 0) {
-      const total = pool.reduce((s, x) => s + x.w, 0);
-      let r = Math.random() * total;
-
-      let idx = 0;
-      for (; idx < pool.length; idx++) {
-        r -= pool[idx].w;
-        if (r <= 0) break;
-      }
-      if (idx >= pool.length) idx = pool.length - 1;
-
-      res.push(pool[idx].q);
-      pool.splice(idx, 1); // 不放回 => 不重複
+function weightedSampleUnique(arr, n) {
+  const stats = loadStats();
+  const pool = arr.map(q => ({ q, w: 1 + (stats[q.id]?.wrong || 0) }));
+  const res = [];
+  while (res.length < n && pool.length > 0) {
+    const total = pool.reduce((s, x) => s + x.w, 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (; idx < pool.length; idx++) {
+      r -= pool[idx].w;
+      if (r <= 0) break;
     }
-    return res;
+    if (idx >= pool.length) idx = pool.length - 1;
+    res.push(pool[idx].q);
+    pool.splice(idx, 1);
   }
+  return res;
+}
 
-  function render() {
-    locked = false;
+function render() {
+  locked = false;
+  const n = getNumQuestions();
+  current = weightedSampleUnique(QUESTIONS, n);
 
-    const n = getNumQuestions();
-    current = weightedSampleUnique(QUESTIONS, n);
+  document.getElementById("meta").textContent = `0 / 0`;
+  document.getElementById("submitBtn").disabled = false;
 
-    // 初始 meta 顯示空白成績
-    document.getElementById("meta").textContent = `0 / 0`;
-    document.getElementById("submitBtn").disabled = false;
+  const div = document.getElementById("quiz");
+  div.innerHTML = "";
 
-    const div = document.getElementById("quiz");
-    div.innerHTML = "";
+  current.forEach((q, i) => {
+    div.innerHTML += `
+      <div class="question" data-qindex="${i}" id="q${i}">
+        <div class="qtitle">${i + 1}. ${q.question}</div>
+        ${q.choices.map((c, idx) => `
+          <div class="choice">
+            <label class="option">
+              <input type="radio" name="q${i}" value="${idx}" />
+              ${c}
+            </label>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  });
+}
 
-    current.forEach((q, i) => {
-      div.innerHTML += `
-        <div class="question" data-qindex="${i}" id="q${i}">
-          <div class="qtitle">${i + 1}. ${q.question}</div>
-          ${q.choices.map((c, idx) => `
-            <div class="choice">
-              <label class="option">
-                <input type="radio" name="q${i}" value="${idx}" />
-                ${c}
-              </label>
-            </div>
-          `).join("")}
-        </div>
-      `;
-    });
-  }
+function markOptions(qIndex, correct, selected) {
+  const qEl = document.querySelector(`.question[data-qindex="${qIndex}"]`);
+  if (!qEl) return;
 
-  function markOptions(qIndex, correct, selected) {
-    const qEl = document.querySelector(`.question[data-qindex="${qIndex}"]`);
-    if (!qEl) return;
+  const labels = qEl.querySelectorAll("label.option");
 
-    qEl.querySelectorAll("label.option").forEach(label => {
-      const input = label.querySelector("input");
-      const v = Number(input.value);
+  labels.forEach(label => {
+    const input = label.querySelector("input");
+    const v = Number(input.value);
 
+    if (selected !== -1) {
       if (v === correct) label.classList.add("is-correct");
+      if (v === selected && selected !== correct) label.classList.add("is-wrong");
+    } else {
+      if (v === correct) label.classList.add("is-correct");
+      else label.classList.add("is-unanswered");
+    }
+  });
+}
 
-      if (v === selected) {
-        if (selected === correct) label.classList.add("is-selected-correct");
-        else label.classList.add("is-selected-wrong");
-      }
-    });
-  }
+function scrollToFirstQuestion() {
+  const first = document.getElementById("q0");
+  if (first) first.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
-  function scrollToFirstQuestion() {
-    const first = document.getElementById("q0");
-    if (first) first.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+function submitQuiz() {
+  if (locked) return;
+  locked = true;
 
-  function submitQuiz() {
-    if (locked) return;
-    locked = true;
+  const stats = loadStats();
+  let answeredCount = 0;
+  let correctCount = 0;
 
-    const stats = loadStats();
+  current.forEach((q, i) => {
+    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+    const ans = sel ? Number(sel.value) : -1;
 
-    let answeredCount = 0; // 你有選的題數
-    let correctCount = 0;  // 你答對的題數（只算有作答者）
+    if (!stats[q.id]) stats[q.id] = { wrong: 0 };
 
-    current.forEach((q, i) => {
-      const sel = document.querySelector(`input[name="q${i}"]:checked`);
-      const ans = sel ? Number(sel.value) : -1;
+    if (ans !== -1) {
+      answeredCount++;
+      if (ans === q.answer) correctCount++;
+    }
 
-      if (!stats[q.id]) stats[q.id] = { wrong: 0 };
+    if (ans !== q.answer) stats[q.id].wrong++;
 
-      // 有作答才算入「選擇的題數」與「對的題數」
-      if (ans !== -1) {
-        answeredCount++;
-        if (ans === q.answer) correctCount++;
-      }
+    markOptions(i, q.answer, ans);
+  });
 
-      // 錯題統計仍照原本：沒作答也算錯（你如果不要，我也能改）
-      if (ans !== q.answer) stats[q.id].wrong++;
+  saveStats(stats);
 
-      markOptions(i, q.answer, ans);
-    });
+  document.getElementById("meta").textContent = `${correctCount} / ${answeredCount}`;
+  document.querySelectorAll('#quiz input[type="radio"]').forEach(r => r.disabled = true);
+  document.getElementById("submitBtn").disabled = true;
 
-    saveStats(stats);
+  scrollToFirstQuestion();
+}
 
-    // ✅ 更新顯示：對的題數 / 你有作答的題數
-    document.getElementById("meta").textContent = `${correctCount} / ${answeredCount}`;
-
-    // ✅ 鎖定不能改
-    document.querySelectorAll('#quiz input[type="radio"]').forEach(r => r.disabled = true);
-    document.getElementById("submitBtn").disabled = true;
-
-    // ✅ 送出後跳到第一題
-    scrollToFirstQuestion();
-  }
-
-  function nextRound() {
-    render();
-    scrollToFirstQuestion();
-  }
-
-  document.getElementById("submitBtn").addEventListener("click", submitQuiz);
-  document.getElementById("nextBtn").addEventListener("click", nextRound);
-  document.getElementById("numQuestions").addEventListener("change", nextRound);
-
+function nextRound() {
   render();
+  scrollToFirstQuestion();
+}
+
+document.getElementById("submitBtn").addEventListener("click", submitQuiz);
+document.getElementById("nextBtn").addEventListener("click", nextRound);
+document.getElementById("numQuestions").addEventListener("change", nextRound);
+
+render();
 </script>
 
 </body>
