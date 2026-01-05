@@ -28,25 +28,23 @@
     user-select: none;
   }
 
-  /* 你選到且答對：綠 */
-  label.option.is-selected-correct {
-    background: #dcfce7;
-    border-color: #16a34a;
-  }
-
-  /* 你選到但答錯：紅 */
-  label.option.is-selected-wrong {
-    background: #fee2e2;
-    border-color: #dc2626;
-  }
-
-  /* 正確答案（送出後一定標綠） */
-  label.option.is-correct {
-    background: #dcfce7;
-    border-color: #16a34a;
-  }
+  label.option.is-selected-correct { background: #dcfce7; border-color: #16a34a; }
+  label.option.is-selected-wrong   { background: #fee2e2; border-color: #dc2626; }
+  label.option.is-correct          { background: #dcfce7; border-color: #16a34a; }
 
   .meta { color:#555; font-size: 14px; }
+
+  /* 最後控制區 */
+  .actions {
+    margin: 10px 0 30px;
+    padding: 14px;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
 </style>
 
 <!-- ✅ 用絕對路徑 + 版本參數，避免快取 -->
@@ -67,19 +65,21 @@
     </select>
   </div>
 
-  <button id="submitBtn">送出</button>
-  <button id="nextBtn">下一次測驗</button>
-
-  <div class="meta" id="meta"></div>
+  <!-- ✅ 這裡顯示：對的題數/有作答的題數（送出後更新） -->
+  <div class="meta" id="meta">請作答後按送出</div>
 </div>
 
 <div id="quiz"></div>
 
+<!-- ✅ 按鈕移到最後一題後面 -->
+<div class="actions">
+  <button id="submitBtn">送出</button>
+  <button id="nextBtn">下一次測驗</button>
+</div>
+
 <script>
-  // 題庫
   const QUESTIONS = window.QUESTIONS || [];
 
-  // 錯題權重統計（你原本的設計保留）
   function loadStats() {
     return JSON.parse(localStorage.getItem("stats") || "{}");
   }
@@ -94,13 +94,10 @@
     return parseInt(document.getElementById("numQuestions").value, 10);
   }
 
-  // ✅ 同一次測驗不重複 + 錯越多越容易抽到（加權、不放回抽樣）
+  // ✅ 不重複 + 加權
   function weightedSampleUnique(arr, n) {
     const stats = loadStats();
-    const pool = arr.map(q => ({
-      q,
-      w: 1 + (stats[q.id]?.wrong || 0)
-    }));
+    const pool = arr.map(q => ({ q, w: 1 + (stats[q.id]?.wrong || 0) }));
 
     const res = [];
     while (res.length < n && pool.length > 0) {
@@ -115,7 +112,7 @@
       if (idx >= pool.length) idx = pool.length - 1;
 
       res.push(pool[idx].q);
-      pool.splice(idx, 1); // ✅ 不放回 => 不重複
+      pool.splice(idx, 1); // 不放回 => 不重複
     }
     return res;
   }
@@ -126,7 +123,8 @@
     const n = getNumQuestions();
     current = weightedSampleUnique(QUESTIONS, n);
 
-    document.getElementById("meta").textContent = `題庫：${QUESTIONS.length} 題｜本次：${current.length} 題`;
+    // 初始 meta 顯示空白成績
+    document.getElementById("meta").textContent = `0 / 0`;
     document.getElementById("submitBtn").disabled = false;
 
     const div = document.getElementById("quiz");
@@ -134,7 +132,7 @@
 
     current.forEach((q, i) => {
       div.innerHTML += `
-        <div class="question" data-qindex="${i}">
+        <div class="question" data-qindex="${i}" id="q${i}">
           <div class="qtitle">${i + 1}. ${q.question}</div>
           ${q.choices.map((c, idx) => `
             <div class="choice">
@@ -157,15 +155,18 @@
       const input = label.querySelector("input");
       const v = Number(input.value);
 
-      // 永遠標出正確答案綠色
       if (v === correct) label.classList.add("is-correct");
 
-      // 你選的那個：對->綠、錯->紅
       if (v === selected) {
         if (selected === correct) label.classList.add("is-selected-correct");
         else label.classList.add("is-selected-wrong");
       }
     });
+  }
+
+  function scrollToFirstQuestion() {
+    const first = document.getElementById("q0");
+    if (first) first.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function submitQuiz() {
@@ -174,11 +175,22 @@
 
     const stats = loadStats();
 
+    let answeredCount = 0; // 你有選的題數
+    let correctCount = 0;  // 你答對的題數（只算有作答者）
+
     current.forEach((q, i) => {
       const sel = document.querySelector(`input[name="q${i}"]:checked`);
       const ans = sel ? Number(sel.value) : -1;
 
       if (!stats[q.id]) stats[q.id] = { wrong: 0 };
+
+      // 有作答才算入「選擇的題數」與「對的題數」
+      if (ans !== -1) {
+        answeredCount++;
+        if (ans === q.answer) correctCount++;
+      }
+
+      // 錯題統計仍照原本：沒作答也算錯（你如果不要，我也能改）
       if (ans !== q.answer) stats[q.id].wrong++;
 
       markOptions(i, q.answer, ans);
@@ -186,21 +198,26 @@
 
     saveStats(stats);
 
-    // ✅ 送出後鎖定不能再改
+    // ✅ 更新顯示：對的題數 / 你有作答的題數
+    document.getElementById("meta").textContent = `${correctCount} / ${answeredCount}`;
+
+    // ✅ 鎖定不能改
     document.querySelectorAll('#quiz input[type="radio"]').forEach(r => r.disabled = true);
     document.getElementById("submitBtn").disabled = true;
+
+    // ✅ 送出後跳到第一題
+    scrollToFirstQuestion();
   }
 
   function nextRound() {
     render();
+    scrollToFirstQuestion();
   }
 
-  // 綁定按鈕
   document.getElementById("submitBtn").addEventListener("click", submitQuiz);
   document.getElementById("nextBtn").addEventListener("click", nextRound);
   document.getElementById("numQuestions").addEventListener("change", nextRound);
 
-  // 首次載入
   render();
 </script>
 
