@@ -1,158 +1,208 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>刷題系統</title>
+
 <style>
-body { font-family: Arial; max-width: 800px; margin: auto; }
-.question { margin: 20px 0; }
-.choice { margin: 5px 0; }
-button { margin: 10px 5px; padding: 8px 16px; }
+  body { font-family: Arial; max-width: 900px; margin: 18px auto; padding: 0 12px; }
+  h1 { margin: 8px 0 14px; }
+  .topbar { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom: 14px; }
+  .question { margin: 18px 0; padding: 14px; border: 1px solid #eee; border-radius: 12px; }
+  .qtitle { font-weight: 700; margin-bottom: 10px; line-height: 1.4; }
+  .choice { margin: 8px 0; }
 
-label.option {
-  display: block;
-  padding: 8px 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  margin: 6px 0;
-}
+  button { margin: 6px 6px 6px 0; padding: 10px 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
 
-label.option.is-correct {
-  background: #dcfce7;
-  border-color: #16a34a;
-}
+  select { padding: 8px 10px; border-radius: 10px; border: 1px solid #ddd; }
 
-label.option.is-wrong {
-  background: #fee2e2;
-  border-color: #dc2626;
-}
+  label.option {
+    display: block;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin: 6px 0;
+    line-height: 1.35;
+    user-select: none;
+  }
+
+  /* 你選到且答對：綠 */
+  label.option.is-selected-correct {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  /* 你選到但答錯：紅 */
+  label.option.is-selected-wrong {
+    background: #fee2e2;
+    border-color: #dc2626;
+  }
+
+  /* 正確答案（送出後一定標綠） */
+  label.option.is-correct {
+    background: #dcfce7;
+    border-color: #16a34a;
+  }
+
+  .meta { color:#555; font-size: 14px; }
 </style>
+
+<!-- ✅ 用絕對路徑 + 版本參數，避免快取 -->
 <script src="https://timchen940202-max.github.io/quiz/questions.js?v=1"></script>
 </head>
-<body>
 
+<body>
 <h1>刷題系統</h1>
 
-<div style="margin: 10px 0;">
-  <label for="numQuestions"><b>每次題數：</b></label>
-  <select id="numQuestions">
-    <option value="10" selected>10 題</option>
-    <option value="15">15 題</option>
-    <option value="20">20 題</option>
-    <option value="25">25 題</option>
-  </select>
+<div class="topbar">
+  <div>
+    <label for="numQuestions"><b>每次題數：</b></label>
+    <select id="numQuestions">
+      <option value="10" selected>10 題</option>
+      <option value="15">15 題</option>
+      <option value="20">20 題</option>
+      <option value="25">25 題</option>
+    </select>
+  </div>
+
+  <button id="submitBtn">送出</button>
+  <button id="nextBtn">下一次測驗</button>
+
+  <div class="meta" id="meta"></div>
 </div>
 
 <div id="quiz"></div>
-<button id="submitBtn" onclick="submitQuiz()">送出</button>
-<button onclick="nextRound()">下一次測驗</button>
 
 <script>
-const QUESTIONS = window.QUESTIONS || []; // GitHub 上的題庫仍在原本位置
+  // 題庫
+  const QUESTIONS = window.QUESTIONS || [];
 
-function loadStats() {
-  return JSON.parse(localStorage.getItem("stats") || "{}");
-}
-function saveStats(stats) {
-  localStorage.setItem("stats", JSON.stringify(stats));
-}
-
-let current = [];
-
-function getNumQuestions() {
-  return parseInt(document.getElementById("numQuestions").value, 10);
-}
-
-function weightedSampleUnique(arr, n) {
-  const stats = loadStats();
-  const pool = arr.map(q => ({
-    q,
-    w: 1 + (stats[q.id]?.wrong || 0)
-  }));
-
-  const res = [];
-  while (res.length < n && pool.length > 0) {
-    const total = pool.reduce((s, x) => s + x.w, 0);
-    let r = Math.random() * total;
-
-    let idx = 0;
-    for (; idx < pool.length; idx++) {
-      r -= pool[idx].w;
-      if (r <= 0) break;
-    }
-
-    res.push(pool[idx].q);
-    pool.splice(idx, 1);
+  // 錯題權重統計（你原本的設計保留）
+  function loadStats() {
+    return JSON.parse(localStorage.getItem("stats") || "{}");
   }
-  return res;
-}
+  function saveStats(stats) {
+    localStorage.setItem("stats", JSON.stringify(stats));
+  }
 
-function render() {
-  const n = getNumQuestions();
-  current = weightedSampleUnique(QUESTIONS, n);
+  let current = [];
+  let locked = false;
 
-  const div = document.getElementById("quiz");
-  div.innerHTML = "";
+  function getNumQuestions() {
+    return parseInt(document.getElementById("numQuestions").value, 10);
+  }
 
-  const submitBtn = document.getElementById("submitBtn");
-  submitBtn.disabled = false;
+  // ✅ 同一次測驗不重複 + 錯越多越容易抽到（加權、不放回抽樣）
+  function weightedSampleUnique(arr, n) {
+    const stats = loadStats();
+    const pool = arr.map(q => ({
+      q,
+      w: 1 + (stats[q.id]?.wrong || 0)
+    }));
 
-  current.forEach((q,i) => {
-    div.innerHTML += `
-      <div class="question" data-qindex="${i}">
-        <b>${i+1}. ${q.question}</b><br>
-        ${q.choices.map((c,idx)=>`
-          <div class="choice">
-            <label class="option">
-              <input type="radio" name="q${i}" value="${idx}"> ${c}
-            </label>
-          </div>`).join("")}
-      </div>`;
-  });
-}
+    const res = [];
+    while (res.length < n && pool.length > 0) {
+      const total = pool.reduce((s, x) => s + x.w, 0);
+      let r = Math.random() * total;
 
-function markOptions(qIndex, correct, selected) {
-  const qEl = document.querySelector(\`.question[data-qindex="\${qIndex}"]\`);
-  if (!qEl) return;
+      let idx = 0;
+      for (; idx < pool.length; idx++) {
+        r -= pool[idx].w;
+        if (r <= 0) break;
+      }
+      if (idx >= pool.length) idx = pool.length - 1;
 
-  qEl.querySelectorAll("label.option").forEach(label => {
-    const input = label.querySelector("input");
-    const v = Number(input.value);
+      res.push(pool[idx].q);
+      pool.splice(idx, 1); // ✅ 不放回 => 不重複
+    }
+    return res;
+  }
 
-    if (v === correct) label.classList.add("is-correct");
-    if (v === selected && selected !== correct) label.classList.add("is-wrong");
-  });
-}
+  function render() {
+    locked = false;
 
-function submitQuiz() {
-  const stats = loadStats();
+    const n = getNumQuestions();
+    current = weightedSampleUnique(QUESTIONS, n);
 
-  current.forEach((q,i)=>{
-    const sel = document.querySelector(\`input[name=q\${i}]:checked\`);
-    const ans = sel ? Number(sel.value) : -1;
+    document.getElementById("meta").textContent = `題庫：${QUESTIONS.length} 題｜本次：${current.length} 題`;
+    document.getElementById("submitBtn").disabled = false;
 
-    if (!stats[q.id]) stats[q.id] = { wrong:0 };
-    if (ans !== q.answer) stats[q.id].wrong++;
+    const div = document.getElementById("quiz");
+    div.innerHTML = "";
 
-    markOptions(i, q.answer, ans);
-  });
+    current.forEach((q, i) => {
+      div.innerHTML += `
+        <div class="question" data-qindex="${i}">
+          <div class="qtitle">${i + 1}. ${q.question}</div>
+          ${q.choices.map((c, idx) => `
+            <div class="choice">
+              <label class="option">
+                <input type="radio" name="q${i}" value="${idx}" />
+                ${c}
+              </label>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    });
+  }
 
-  saveStats(stats);
+  function markOptions(qIndex, correct, selected) {
+    const qEl = document.querySelector(`.question[data-qindex="${qIndex}"]`);
+    if (!qEl) return;
 
-  document.querySelectorAll('#quiz input[type="radio"]').forEach(r => r.disabled = true);
-  document.getElementById("submitBtn").disabled = true;
-}
+    qEl.querySelectorAll("label.option").forEach(label => {
+      const input = label.querySelector("input");
+      const v = Number(input.value);
 
-function nextRound() {
+      // 永遠標出正確答案綠色
+      if (v === correct) label.classList.add("is-correct");
+
+      // 你選的那個：對->綠、錯->紅
+      if (v === selected) {
+        if (selected === correct) label.classList.add("is-selected-correct");
+        else label.classList.add("is-selected-wrong");
+      }
+    });
+  }
+
+  function submitQuiz() {
+    if (locked) return;
+    locked = true;
+
+    const stats = loadStats();
+
+    current.forEach((q, i) => {
+      const sel = document.querySelector(`input[name="q${i}"]:checked`);
+      const ans = sel ? Number(sel.value) : -1;
+
+      if (!stats[q.id]) stats[q.id] = { wrong: 0 };
+      if (ans !== q.answer) stats[q.id].wrong++;
+
+      markOptions(i, q.answer, ans);
+    });
+
+    saveStats(stats);
+
+    // ✅ 送出後鎖定不能再改
+    document.querySelectorAll('#quiz input[type="radio"]').forEach(r => r.disabled = true);
+    document.getElementById("submitBtn").disabled = true;
+  }
+
+  function nextRound() {
+    render();
+  }
+
+  // 綁定按鈕
+  document.getElementById("submitBtn").addEventListener("click", submitQuiz);
+  document.getElementById("nextBtn").addEventListener("click", nextRound);
+  document.getElementById("numQuestions").addEventListener("change", nextRound);
+
+  // 首次載入
   render();
-}
-
-document.getElementById("numQuestions").addEventListener("change", nextRound);
-
-render();
 </script>
 
 </body>
 </html>
-
-
